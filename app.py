@@ -13,6 +13,8 @@ from face_recognition import FaceRecognition
 
 app = Flask(__name__)
 
+# ================= CONFIG =================
+
 app.config['SECRET_KEY'] = 'secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///attendance.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -26,21 +28,21 @@ db.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'index'
+login_manager.login_view = 'student_login'
 
 face_recognizer = FaceRecognition()
-
 
 # ================= USER LOADER =================
 
 @login_manager.user_loader
 def load_user(user_id):
 
-    admin = Admin.query.get(int(user_id))
-    if admin:
-        return admin
+    user = Student.query.get(user_id)
+    if user:
+        return user
 
-    return Student.query.get(int(user_id))
+    user = Admin.query.get(user_id)
+    return user
 
 
 # ================= HOME =================
@@ -67,7 +69,7 @@ def admin_login():
             login_user(admin)
             return redirect(url_for('admin_dashboard'))
 
-        flash("Invalid credentials")
+        flash("Invalid admin login")
 
     return render_template("admin_login.html")
 
@@ -137,7 +139,7 @@ def admin_dashboard():
 def student_dashboard():
 
     if not isinstance(current_user, Student):
-        return redirect(url_for('index'))
+        return redirect(url_for('student_login'))
 
     attendance = Attendance.query.filter_by(
         student_id=current_user.student_id
@@ -159,10 +161,12 @@ def camera_page():
     if not isinstance(current_user, Admin):
         return redirect(url_for('index'))
 
-    return render_template("camera.html")
+    subjects = Subject.query.all()
+
+    return render_template("camera.html", subjects=subjects)
 
 
-# ================= PHOTO UPLOAD =================
+# ================= PHOTO UPLOAD (FACE REGISTER) =================
 
 @app.route('/upload-photo', methods=['GET','POST'])
 @login_required
@@ -188,7 +192,6 @@ def upload_photo():
         if encoding is None:
 
             os.remove(path)
-
             flash("No face detected")
             return redirect(request.url)
 
@@ -285,7 +288,7 @@ def mark_attendance_upload():
     )
 
 
-# ================= SUBJECT API =================
+# ================= API SUBJECTS =================
 
 @app.route('/api/subjects')
 @login_required
@@ -299,7 +302,7 @@ def get_subjects():
     ])
 
 
-# ================= ATTENDANCE VIEW =================
+# ================= API ATTENDANCE =================
 
 @app.route('/api/attendance/view')
 @login_required
@@ -330,7 +333,7 @@ def logout():
     return redirect(url_for('index'))
 
 
-# ================= INIT DB =================
+# ================= INIT DATABASE =================
 
 def init_db():
 

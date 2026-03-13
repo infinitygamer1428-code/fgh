@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance by Photo Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .upload-box {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-box:hover {
+            background: #e9ecef;
+            border-color: #0056b3;
+        }
+        .file-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .file-item.success {
+            border-left: 4px solid #28a745;
+        }
+        .file-item.error {
+            border-left: 4px solid #dc3545;
+        }
+        .file-item.processing {
+            border-left: 4px solid #ffc107;
+        }
+        .progress {
+            height: 30px;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .preview-thumb {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-upload me-2"></i>Photo Attendance System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                </a>
+                <a class="nav-link" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <h2><i class="fas fa-camera me-2"></i>Mark Attendance by Photo Upload</h2>
+                <p class="text-muted">Upload photos of students to automatically mark attendance</p>
+                <hr>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Session Information</h5>
+                        <form id="attendanceForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="subject" class="form-label">Select Subject</label>
+                                    <select class="form-select" id="subject" required>
+                                        <option value="">Choose subject...</option>
+                                        {% for subject in subjects %}
+                                        <option value="{{ subject.name }}">{{ subject.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="classHour" class="form-label">Class Hour</label>
+                                    <select class="form-select" id="classHour" required>
+                                        <option value="">Select hour...</option>
+                                        <option value="1">Hour 1 (9:00 - 10:00)</option>
+                                        <option value="2">Hour 2 (10:00 - 11:00)</option>
+                                        <option value="3">Hour 3 (11:00 - 12:00)</option>
+                                        <option value="4">Hour 4 (12:00 - 13:00)</option>
+                                        <option value="5">Hour 5 (14:00 - 15:00)</option>
+                                        <option value="6">Hour 6 (15:00 - 16:00)</option>
+                                        <option value="7">Hour 7 (16:00 - 17:00)</option>
+                                        <option value="8">Hour 8 (17:00 - 18:00)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Upload Photos</h5>
+                        <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-cloud-upload-alt fa-4x mb-3 text-primary"></i>
+                            <h5>Click to select photos or drag & drop</h5>
+                            <p class="text-muted">You can select multiple photos at once</p>
+                            <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                        </div>
+
+                        <div id="fileList" class="mt-4">
+                            <!-- Selected files will appear here -->
+                        </div>
+
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="processPhotos()" id="processBtn" disabled>
+                                <i class="fas fa-play me-2"></i>Process Photos
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearFiles()">
+                                <i class="fas fa-trash me-2"></i>Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <h4>Statistics</h4>
+                    <div class="row text-center mt-3">
+                        <div class="col-6">
+                            <h3 id="totalFiles">0</h3>
+                            <small>Photos Selected</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 id="processedFiles">0</h3>
+                            <small>Processed</small>
+                        </div>
+                    </div>
+                    <div class="row text-center mt-3">
+                        <div class="col-6">
+                            <h3 id="successCount">0</h3>
+                            <small>Successful</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 id="failedCount">0</h3>
+                            <small>Failed</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Marked</h5>
+                    </div>
+                    <div class="card-body" id="recentMarked" style="max-height: 300px; overflow-y: auto;">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-clock fa-3x mb-3"></i>
+                            <p>No attendance marked yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="modal fade" id="resultModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Processing Complete</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <h3 id="modalSuccessCount">0</h3>
+                        <p>Students marked present</p>
+                    </div>
+                    <div id="modalResults"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="location.reload()">Upload More</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedFiles = [];
+        let processedCount = 0;
+        let successCount = 0;
+        let failedCount = 0;
+
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const processBtn = document.getElementById('processBtn');
+        const uploadBox = document.getElementById('uploadBox');
+
+        // Drag and drop
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.style.background = '#e9ecef';
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.style.background = '#f8f9fa';
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.style.background = '#f8f9fa';
+            
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            addFiles(files);
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            addFiles(files);
+        });
+
+        function addFiles(files) {
+            selectedFiles = [...selectedFiles, ...files];
+            updateFileList();
+            updateStats();
+            processBtn.disabled = selectedFiles.length === 0;
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.id = `file-${index}`;
+                    div.innerHTML = `
+                        <div class="d-flex align-items-center">
+                            <img src="${e.target.result}" class="preview-thumb" alt="Preview">
+                            <div>
+                                <strong>${file.name}</strong><br>
+                                <small class="text-muted">${(file.size / 1024).toFixed(2)} KB</small>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge bg-secondary">Pending</span>
+                            <button class="btn btn-sm btn-danger ms-2" onclick="removeFile(${index})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                    fileList.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+            updateStats();
+            processBtn.disabled = selectedFiles.length === 0;
+        }
+
+        function clearFiles() {
+            selectedFiles = [];
+            fileList.innerHTML = '';
+            updateStats();
+            processBtn.disabled = true;
+            fileInput.value = '';
+        }
+
+        function updateStats() {
+            document.getElementById('totalFiles').textContent = selectedFiles.length;
+            document.getElementById('processedFiles').textContent = processedCount;
+            document.getElementById('successCount').textContent = successCount;
+            document.getElementById('failedCount').textContent = failedCount;
+        }
+
+        async function processPhotos() {
+            const subject = document.getElementById('subject').value;
+            const classHour = document.getElementById('classHour').value;
+
+            if (!subject || !classHour) {
+                alert('Please select subject and class hour first');
+                return;
+            }
+
+            processBtn.disabled = true;
+            processedCount = 0;
+            successCount = 0;
+            failedCount = 0;
+            updateStats();
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                await processSingleFile(selectedFiles[i], i, subject, classHour);
+            }
+
+            // Show results
+            document.getElementById('modalSuccessCount').textContent = successCount;
+            const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+            modal.show();
+            
+            processBtn.disabled = false;
+        }
+
+        async function processSingleFile(file, index, subject, classHour) {
+            const fileElement = document.getElementById(`file-${index}`);
+            const statusBadge = fileElement.querySelector('.badge');
+            
+            statusBadge.className = 'badge bg-warning';
+            statusBadge.textContent = 'Processing...';
+
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('subject', subject);
+            formData.append('class_hour', classHour);
+
+            try {
+                const response = await fetch('/api/verify-face', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                processedCount++;
+                
+                if (data.success) {
+                    statusBadge.className = 'badge bg-success';
+                    statusBadge.textContent = '✓ Success';
+                    fileElement.classList.add('success');
+                    successCount++;
+                    
+                    // Add to recent marked
+                    addToRecentMarked(data.student, subject, classHour);
+                } else {
+                    statusBadge.className = 'badge bg-danger';
+                    statusBadge.textContent = '✗ Failed';
+                    fileElement.classList.add('error');
+                    failedCount++;
+                }
+            } catch (error) {
+                processedCount++;
+                statusBadge.className = 'badge bg-danger';
+                statusBadge.textContent = '✗ Error';
+                fileElement.classList.add('error');
+                failedCount++;
+            }
+
+            updateStats();
+        }
+
+        function addToRecentMarked(studentName, subject, hour) {
+            const recentDiv = document.getElementById('recentMarked');
+            const emptyMsg = recentDiv.querySelector('.text-center');
+            if (emptyMsg) emptyMsg.remove();
+
+            const item = document.createElement('div');
+            item.className = 'alert alert-success mb-2';
+            item.innerHTML = `
+                <strong>${studentName}</strong><br>
+                <small>${subject} - Hour ${hour}</small><br>
+                <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+            `;
+            recentDiv.insertBefore(item, recentDiv.firstChild);
+
+            // Limit to 10 items
+            if (recentDiv.children.length > 10) {
+                recentDiv.removeChild(recentDiv.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -3,51 +3,449 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Auto Attendance System</title>
+    <title>Admin Login · Auto Attendance</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Same creative concept styling as the homepage */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f8f9ff 0%, #eef2fa 100%);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Abstract vector background */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background-image: radial-gradient(circle at 20% 30%, rgba(140, 158, 255, 0.12) 0%, transparent 25%),
+                              radial-gradient(circle at 90% 70%, rgba(90, 200, 250, 0.1) 0%, transparent 35%),
+                              repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 2px, transparent 2px, transparent 8px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Floating shapes */
+        .float-shape {
+            position: absolute;
+            top: 5%;
+            right: 3%;
+            width: 280px;
+            height: 280px;
+            background: rgba(200, 225, 255, 0.25);
+            border-radius: 63% 37% 48% 52% / 38% 41% 59% 62%;
+            filter: blur(40px);
+            z-index: 0;
+        }
+
+        .float-shape-2 {
+            position: absolute;
+            bottom: 5%;
+            left: 2%;
+            width: 340px;
+            height: 340px;
+            background: rgba(170, 210, 255, 0.2);
+            border-radius: 74% 26% 42% 58% / 57% 48% 52% 43%;
+            filter: blur(55px);
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Header with concept tags */
+        .concept-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem 3rem;
+            margin-top: 1.2rem;
+            margin-bottom: 3rem;
+            padding: 0.5rem 1.5rem;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(8px);
+            border-radius: 80px;
+            box-shadow: 0 10px 30px -10px rgba(0,20,40,0.15);
+            border: 1px solid rgba(255,255,255,0.5);
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .concept-header span {
+            color: #1a2b4c;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .concept-header i {
+            color: #3a5f8b;
+            font-size: 1.2rem;
+        }
+
+        .logo-emblem {
+            display: inline-block;
+            background: #1e2f4a;
+            color: white;
+            font-weight: 700;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Card styling - enhanced for login */
+        .card {
+            border: none;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 36px;
+            box-shadow: 0 25px 45px -15px rgba(18, 52, 86, 0.3);
+            border: 1px solid rgba(255,255,255,0.6);
+            overflow: hidden;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 35px 55px -18px rgba(20, 60, 120, 0.4);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #1d3f6e, #17355a);
+            color: white;
+            text-align: center;
+            padding: 1.8rem 1.5rem;
+            border-bottom: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::before {
+            content: "";
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .card-header::after {
+            content: "";
+            position: absolute;
+            bottom: -30px;
+            left: -30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-header i {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-body {
+            padding: 2.5rem;
+        }
+
+        /* Form styling */
+        .form-label {
+            color: #1a3a5e;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(26, 58, 94, 0.1);
+            border-radius: 16px;
+            padding: 0.75rem 1.2rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+            color: #1a3a5e;
+        }
+
+        .form-control:focus {
+            border-color: #1d3f6e;
+            box-shadow: 0 0 0 0.2rem rgba(29, 63, 110, 0.15);
+            background: white;
+        }
+
+        /* Alert styling */
+        .alert {
+            border-radius: 16px;
+            border: none;
+            background: rgba(220, 53, 69, 0.1);
+            color: #b02a37;
+            padding: 1rem 1.2rem;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+            border-left: 4px solid #dc3545;
+        }
+
+        /* Button styling */
+        .btn-primary {
+            background: linear-gradient(145deg, #1f4172, #17355a);
+            border: none;
+            border-radius: 40px;
+            padding: 0.9rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 16px -6px rgba(0,60,110,0.3);
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(145deg, #17355a, #0e2d4f);
+            transform: scale(1.02);
+            box-shadow: 0 12px 20px -10px #0a2740;
+        }
+
+        /* Back link styling */
+        .back-link {
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .back-link a {
+            color: #1a3a5e;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 40px;
+            background: rgba(255,255,255,0.3);
+            backdrop-filter: blur(5px);
+            transition: all 0.2s;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .back-link a:hover {
+            background: rgba(255,255,255,0.6);
+            color: #0e2d4f;
+            transform: translateX(-5px);
+        }
+
+        .back-link i {
+            margin-right: 8px;
+            transition: transform 0.2s;
+        }
+
+        .back-link a:hover i {
+            transform: translateX(-3px);
+        }
+
+        /* Decorative icon */
+        .admin-icon {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+       .admin-icon {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-icon i {
+    font-size: 4rem;
+    color: #1d3f6e;
+    background: rgba(255,255,255,0.3);
+
+    width: 110px;
+    height: 110px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    border: 2px dashed rgba(29, 63, 110, 0.2);
+}
+        
+
+        /* Get started pulse (same as homepage) */
+        .get-started-pulse {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(25, 55, 90, 0.85);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 0.8rem 1.8rem;
+            border-radius: 60px;
+            font-weight: 600;
+            box-shadow: 0 15px 30px -8px #10253b;
+            border: 1px solid rgba(255,255,255,0.3);
+            z-index: 999;
+            cursor: default;
+            font-size: 1rem;
+        }
+
+        .get-started-pulse i {
+            margin-right: 8px;
+            color: #b5e4ff;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .concept-header {
+                gap: 1rem;
+            }
+            
+            .card-header h3 {
+                font-size: 1.6rem;
+            }
+        }
+
+        /* Input group styling for optional icons */
+        .input-group-text {
+            background: rgba(255,255,255,0.9);
+            border: 2px solid rgba(26, 58, 94, 0.1);
+            border-radius: 16px 0 0 16px;
+            border-right: none;
+            color: #1a3a5e;
+        }
+
+        .input-group .form-control {
+            border-radius: 0 16px 16px 0;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
+    <!-- Floating shapes (same as homepage) -->
+    <div class="float-shape"></div>
+    <div class="float-shape-2"></div>
+
+
         <div class="row justify-content-center">
-            <div class="col-md-6">
+            <div class="col-md-6 col-lg-5">
+                <!-- Decorative admin icon -->
+                <div class="admin-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+
+                <!-- Login Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="text-center">Admin Login</h3>
+                        <i class="fas fa-lock"></i>
+                        <h3>Admin Login</h3>
                     </div>
                     <div class="card-body">
                         {% with messages = get_flashed_messages() %}
                             {% if messages %}
                                 {% for message in messages %}
-                                    <div class="alert alert-danger">{{ message }}</div>
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        {{ message }}
+                                    </div>
                                 {% endfor %}
                             {% endif %}
                         {% endwith %}
                         
                         <form method="POST">
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
+                            <div class="mb-4">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-user me-2"></i>Username
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <input type="text" class="form-control" id="username" name="username" 
+                                           placeholder="Enter your username" required>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                            
+                            <div class="mb-4">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-key me-2"></i>Password
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control" id="password" name="password" 
+                                           placeholder="Enter your password" required>
+                                </div>
                             </div>
+
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-primary">Login</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                                </button>
                             </div>
                         </form>
                         
-                        <div class="mt-3 text-center">
-                            <a href="{{ url_for('index') }}">Back to Home</a>
-                        </div>
-                        
-                        <div class="mt-2 text-center">
-                            <small>Default: admin / admin123</small>
+                        <div class="back-link">
+                            <a href="{{ url_for('index') }}">
+                                <i class="fas fa-arrow-left"></i> Back to Home
+                            </a>
                         </div>
                     </div>
                 </div>
+
+                <!-- Additional info (like the concept footer) -->
+                <div class="text-center mt-4" style="color: #1a3a5e; opacity: 0.6;">
+                    <small>
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Secure access for administrators only
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom lorem ipsum (concept style) -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <p style="text-align: center; color: #32506b; opacity: 0.4; font-size: 0.85rem;">
+                    <i class="fas fa-circle me-2" style="font-size: 0.3rem; vertical-align: middle;"></i> 
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam et suscipit turpis.
+                </p>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -3,48 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Attendance System</title>
+    <title>Auto Attendance · visionary concept</title>
+    <!-- Bootstrap 5 (minimal, just for grid & basic components) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Font Awesome 6 (free) for icons to match the "concept / innovative" feel -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* -------------- INSPIRED BY THE CONCEPT CARD --------------
+           The uploaded concept shows: "LOGO / BUSINESS / CONCEPT / VECTOR / ILLUSTRATION / LOGIN"
+           plus "Innovative SOLUTION", gradient shapes, clean typography, lorem ipsum.
+           We merge that with the attendance system: creative, semi‑transparent panels, 
+           abstract blurred background, techy but friendly.
+        */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f8f9ff 0%, #eef2fa 100%);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* abstract vector / illustration background – like the webp style */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background-image: radial-gradient(circle at 20% 30%, rgba(140, 158, 255, 0.12) 0%, transparent 25%),
+                              radial-gradient(circle at 90% 70%, rgba(90, 200, 250, 0.1) 0%, transparent 35%),
+                              repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 2px, transparent 2px, transparent 8px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* soft geometric shape – like "concept illustration" floating */
+        .float-shape {
+            position: absolute;
+            top: 5%;
+            right: 3%;
+            width: 280px;
+            height: 280px;
+            background: rgba(200, 225, 255, 0.25);
+            border-radius: 63% 37% 48% 52% / 38% 41% 59% 62%;
+            filter: blur(40px);
+            z-index: 0;
+        }
+
+        .float-shape-2 {
+            position: absolute;
+            bottom: 5%;
+            left: 2%;
+            width: 340px;
+            height: 340px;
+            background: rgba(170, 210, 255, 0.2);
+            border-radius: 74% 26% 42% 58% / 57% 48% 52% 43%;
+            filter: blur(55px);
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+        }
+
+
+        .concept-header span {
+            color: #1a2b4c;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .concept-header i {
+            color: #3a5f8b;
+            font-size: 1.2rem;
+        }
+
+        .logo-emblem {
+            display: inline-block;
+            background: #1e2f4a;
+            color: white;
+            font-weight: 700;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* main title area with "innovative solution" tag */
+        .title-block {
+            text-align: center;
+            margin: 2rem 0 1rem;
+        }
+
+        .innovative-badge {
+            display: inline-block;
+            background: rgba(30, 60, 100, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 0.5rem 1.8rem;
+            border-radius: 60px;
+            color: #13273e;
+            font-weight: 600;
+            font-size: 1rem;
+            border: 1px solid rgba(255,255,255,0.7);
+            margin-bottom: 1.2rem;
+            letter-spacing: 1px;
+        }
+
+        .innovative-badge i {
+            margin-right: 8px;
+            color: #2b4f8e;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(130deg, #162b42, #27496d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 10px rgba(0,60,130,0.1);
+        }
+
+        .lead {
+            font-size: 1.4rem;
+            font-weight: 300;
+            color: #2c405c;
+            background: rgba(255,255,255,0.4);
+            backdrop-filter: blur(2px);
+            display: inline-block;
+            padding: 0.3rem 2rem;
+            border-radius: 60px;
+        }
+
+        /* Cards — exactly as in original but with creative flair */
+        .card {
+            border: none;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            border-radius: 36px;
+            box-shadow: 0 25px 45px -15px rgba(18, 52, 86, 0.25);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.6);
+            padding: 1.2rem 0.5rem;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 35px 55px -18px rgba(20, 60, 120, 0.35);
+            border-color: rgba(255,255,255,0.9);
+        }
+
+        .card-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a3a5e;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-text {
+            color: #2b4b6f;
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-bottom: 1.8rem;
+        }
+
+        .btn {
+            padding: 0.7rem 2.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 8px 16px -6px rgba(0,60,110,0.25);
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #1d3f6e;
+            background: linear-gradient(145deg, #1f4172, #17355a);
+        }
+
+        .btn-primary:hover {
+            background: #0e2d4f;
+            transform: scale(1.02);
+            box-shadow: 0 12px 20px -10px #0a2740;
+        }
+
+        .btn-success {
+            background: #1b6b4e;
+            background: linear-gradient(145deg, #1e6f52, #15573f);
+        }
+
+        .btn-success:hover {
+            background: #0e4f39;
+            transform: scale(1.02);
+        }
+
+        /* new student link */
+        .register-area {
+            background: rgba(255,255,255,0.4);
+            backdrop-filter: blur(5px);
+            padding: 0.9rem 2rem;
+            border-radius: 60px;
+            display: inline-block;
+            margin-top: 1.2rem;
+            font-size: 1.1rem;
+            border: 1px solid rgba(255,255,255,0.7);
+        }
+
+        .register-area a {
+            color: #124072;
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 2px solid #638bbf;
+        }
+
+        .register-area a:hover {
+            color: #062244;
+            border-bottom-color: #062244;
+        }
+
+        /* dummy lorem ipsum block — like the concept card (Lorem ipsum ...) */
+        .concept-footer-note {
+            margin-top: 4rem;
+            padding: 1rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            color: #2d4563;
+            border-top: 1px dashed rgba(70, 110, 160, 0.3);
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .concept-footer-note .left i {
+            margin: 0 6px;
+        }
+
+        .readmore-badge {
+            border: 1px solid currentColor;
+            border-radius: 50px;
+            padding: 0.2rem 1.2rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: 0.2s;
+        }
+
+        .readmore-badge:hover {
+            background: rgba(255,255,255,0.3);
+            opacity: 1;
+        }
+
+        /* responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .concept-header { gap: 1rem; }
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-md-12 text-center">
-                <h1 class="mb-4">Auto Attendance System</h1>
-                <p class="lead">Face Recognition Based Attendance Management</p>
+    <!-- abstract floating shapes (vector/illustration vibe) -->
+    <div class="float-shape"></div>
+    <div class="float-shape-2"></div>
+        <!-- Concept Illustration + Innovative solution headline -->
+        <div class="title-block">
+            <div class="innovative-badge">
+                <i class="fas fa-microchip"></i> Concept Illustration · INNOVATIVE SOLUTION
             </div>
+            <h1>Auto Attendance System</h1>
+            <p class="lead">Face Recognition Based Attendance Management</p>
         </div>
-        
-        <div class="row mt-5">
+
+        <!-- two cards for admin / student login (exactly as original but styled) -->
+        <div class="row mt-5 g-4">
             <div class="col-md-6">
-                <div class="card text-center">
-                    <div class="card-body">
+                <div class="card text-center h-100">
+                    <div class="card-body d-flex flex-column justify-content-center">
+                        <!-- you can add small icon -->
+                        <i class="fas fa-user-shield fa-3x mb-3" style="color: #1d3f6e; opacity: 0.7;"></i>
                         <h5 class="card-title">Admin Login</h5>
                         <p class="card-text">Login as administrator to manage attendance</p>
-                        <a href="{{ url_for('admin_login') }}" class="btn btn-primary">Admin Login</a>
+                        <a href="{{ url_for('admin_login') }}" class="btn btn-primary mt-auto align-self-center">Admin Login →</a>
                     </div>
                 </div>
             </div>
             
             <div class="col-md-6">
-                <div class="card text-center">
-                    <div class="card-body">
+                <div class="card text-center h-100">
+                    <div class="card-body d-flex flex-column justify-content-center">
+                        <i class="fas fa-graduation-cap fa-3x mb-3" style="color: #1b6b4e; opacity: 0.7;"></i>
                         <h5 class="card-title">Student Login</h5>
                         <p class="card-text">Login as student to view your attendance</p>
-                        <a href="{{ url_for('student_login') }}" class="btn btn-success">Student Login</a>
+                        <a href="{{ url_for('student_login') }}" class="btn btn-success mt-auto align-self-center">Student Login →</a>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- register row (original) -->
         <div class="row mt-4">
             <div class="col-md-12 text-center">
-                <p>New student? <a href="{{ url_for('register') }}">Register here</a></p>
+                <div class="register-area">
+                    <i class="fas fa-pen me-2"></i> New student? <a href="{{ url_for('register') }}">Register here</a>
+                </div>
             </div>
         </div>
+
+        <!-- bottom part: "Lorem ipsum ..." and "READ MORE" as in the concept card -->
+        <div class="concept-footer-note">
+            <div class="left">
+                <i class="far fa-file-alt"></i> 
+                <span>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam et suscipit turpis. Duis sed enim in risus facilisis.</span>
+            </div>
+            
+        </div>
+
+        <!-- tiny extra detail: another lorem line? optionally second line from concept -->
+        <p style="text-align: center; color: #32506b; opacity: 0.5; margin-top: 1rem; font-size: 0.85rem; letter-spacing: 0.5px;">
+            <i class="fas fa-circle me-2" style="font-size: 0.3rem; vertical-align: middle;"></i> 
+           2024-26 computer engineer final year project by visionary concept
+        </p>
     </div>
-    
+
+    <!-- Bootstrap JS (not strictly needed, but included) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- no custom JS needed -->
 </body>
 </html>

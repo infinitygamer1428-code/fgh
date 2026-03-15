@@ -233,25 +233,22 @@
             color: #062244;
             border-bottom-color: #062244;
         }
-
-        /* dummy lorem ipsum block — like the concept card (Lorem ipsum ...) */
-        .concept-footer-note {
-            margin-top: 4rem;
-            padding: 1rem 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            color: #2d4563;
-            border-top: 1px dashed rgba(70, 110, 160, 0.3);
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-
-        .concept-footer-note .left i {
-            margin: 0 6px;
-        }
-
+.concept-footer-note {
+    max-width: 1500px;
+    margin: 4rem auto 0 auto;
+    padding: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    color: #2d4563;
+    border-top: 1px dashed rgba(70, 110, 160, 0.3);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+.concept-footer-note span {
+    max-width: 900px;
+}
         .readmore-badge {
             border: 1px solid currentColor;
             border-radius: 50px;
@@ -279,9 +276,7 @@
     <div class="float-shape-2"></div>
         <!-- Concept Illustration + Innovative solution headline -->
         <div class="title-block">
-            <div class="innovative-badge">
-                <i class="fas fa-microchip"></i> Concept Illustration · INNOVATIVE SOLUTION
-            </div>
+            
             <h1>Auto Attendance System</h1>
             <p class="lead">Face Recognition Based Attendance Management</p>
         </div>
@@ -325,7 +320,7 @@
         <div class="concept-footer-note">
             <div class="left">
                 <i class="far fa-file-alt"></i> 
-                <span>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam et suscipit turpis. Duis sed enim in risus facilisis.</span>
+                <span>This project is an AI-powered Auto Attendance System developed by Computer Engineering students (2024–26 batch). It uses face recognition and camera technology to automatically detect and record student attendance, reducing     manual work and improving accuracy. The system also provides real-time attendance tracking, reports, and management features for administrators and teachers.</span>
             </div>
             
         </div>

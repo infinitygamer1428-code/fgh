@@ -1,310 +1,655 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Auto Attendance System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard · bento grid</title>
+
+  <!-- Bootstrap + Icons (kept for structure, but we override with bento CSS) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* ---------- bento grid theme · solid colors, no gradients ---------- */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f4f6fa;  /* soft solid background */
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* navbar — solid dark, no gradient */
+    .navbar.bg-dark {
+      background-color: #1e1e2f !important;  /* deep solid navy */
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .navbar .navbar-brand,
+    .navbar .nav-link {
+      color: #ffffff !important;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    .navbar .nav-link:hover {
+      color: #cfd9ff !important;
+    }
+
+    /* main container */
+    .bento-container {
+      max-width: 1440px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    /* welcome header */
+    .welcome-title {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #162b3a;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.01em;
+    }
+    .hr-bento {
+      border: 0;
+      height: 3px;
+      background: #cbd5e0;
+      margin: 1.2rem 0 2rem 0;
+      opacity: 0.5;
+      border-radius: 6px;
+    }
+
+    /* ---------- bento grid (action cards) ---------- */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.8rem;
+      margin-bottom: 3rem;
+    }
+
+    .bento-card {
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 2rem 1.5rem;
+      box-shadow: 0 10px 25px -8px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.02);
+      transition: all 0.15s ease;
+      border: 1px solid #eef2f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .bento-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 22px 30px -12px rgba(30, 40, 58, 0.14);
+      border-color: #d9e2ef;
+    }
+
+    /* solid icon colors (no gradient) */
+    .bento-icon {
+      font-size: 2.8rem;
+      margin-bottom: 1.2rem;
+      color: #2a4f6e;  /* deep slate */
+    }
+
+    .bento-card .card-title {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #1c3144;
+      margin-bottom: 0.75rem;
+    }
+
+    .bento-card p {
+      color: #526e85;
+      font-size: 1rem;
+      margin-bottom: 1.6rem;
+      line-height: 1.4;
+      padding: 0 0.2rem;
+    }
+
+    /* solid buttons (no gradients, flat with slight shadow) */
+    .btn-bento {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background-color: #2a4f6e;
+      border: none;
+      color: white;
+      font-weight: 500;
+      padding: 0.7rem 1.8rem;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: background 0.1s;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+      border: 1px solid #1f405b;
+      font-size: 1rem;
+    }
+
+    .btn-bento i {
+      font-size: 1.1rem;
+    }
+
+    .btn-bento:hover {
+      background-color: #1f405b;
+      color: white;
+    }
+
+    .btn-bento-info {
+      background-color: #4f6f8f;
+      border-color: #3b5a78;
+    }
+    .btn-bento-info:hover {
+      background-color: #3b5a78;
+    }
+
+    .btn-bento-success {
+      background-color: #2d7a6e;
+      border-color: #1f5e54;
+    }
+    .btn-bento-success:hover {
+      background-color: #1f5e54;
+    }
+
+    /* attendance panel (bento style) */
+    .attendance-panel {
+      background: #ffffff;
+      border-radius: 32px;
+      padding: 2rem 1.8rem 2.2rem 1.8rem;
+      box-shadow: 0 12px 30px -12px rgba(33, 35, 48, 0.1);
+      border: 1px solid #e9eef4;
+      margin-top: 2rem;
+    }
+
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+
+    .panel-header h4 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #1c2e42;
+      margin: 0;
+    }
+
+    .btn-excel {
+      background-color: #2d7a6e;
+      border: none;
+      border-radius: 40px;
+      padding: 0.5rem 1.8rem;
+      font-weight: 500;
+      color: white;
+      border: 1px solid #1f5e54;
+    }
+    .btn-excel:hover {
+      background-color: #1f5e54;
+    }
+
+    /* filter row solid style */
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-bottom: 2rem;
+    }
+    .filter-group {
+      flex: 1 1 160px;
+    }
+    .filter-group label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #314d67;
+      margin-bottom: 0.2rem;
+      display: block;
+    }
+    .filter-control {
+      width: 100%;
+      padding: 0.6rem 1rem;
+      border-radius: 40px;
+      border: 1.5px solid #dde3ea;
+      background: white;
+      font-size: 1rem;
+      transition: 0.1s;
+    }
+    .filter-control:focus {
+      border-color: #2a4f6e;
+      outline: none;
+    }
+    .btn-filter {
+      background-color: #2a4f6e;
+      border: none;
+      border-radius: 40px;
+      padding: 0.6rem 2rem;
+      color: white;
+      font-weight: 500;
+      border: 1px solid #1f405b;
+    }
+    .btn-filter:hover {
+      background-color: #1f405b;
+    }
+
+    /* datatable tweaks (solid) */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+      margin-bottom: 1rem;
+    }
+    .table thead th {
+      background-color: #eef3f9;
+      color: #1f3a4e;
+      font-weight: 600;
+      border-bottom: 2px solid #cddae9;
+    }
+    .table td {
+      vertical-align: middle;
+    }
+    .btn-edit {
+      background-color: #e6a017;
+      border: none;
+      color: white;
+      border-radius: 30px;
+      padding: 0.2rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-right: 4px;
+      border: 1px solid #c17f10;
+    }
+    .btn-edit:hover {
+      background-color: #c17f10;
+    }
+    .btn-delete {
+      background-color: #b22234;
+      border: none;
+      color: white;
+      border-radius: 30px;
+      padding: 0.2rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid #8f1b1c;
+    }
+    .btn-delete:hover {
+      background-color: #8f1b1c;
+    }
+
+    /* modal solid */
+    .modal-content {
+      border-radius: 30px;
+      border: none;
+      padding: 0.5rem;
+    }
+    .modal-header {
+      background-color: #f0f4fc;
+      border-radius: 30px 30px 0 0;
+      border-bottom: 1px solid #dce5f0;
+    }
+    .modal-footer {
+      border-top: 1px solid #dce5f0;
+    }
+    .form-select-custom {
+      border-radius: 60px;
+      padding: 0.7rem 1.2rem;
+      border: 1.5px solid #d3deed;
+    }
+
+    /* hide elements until toggled */
+    .hidden-panel {
+      display: none;
+    }
+
+    /* minor adjustments */
+    .fa-3x {
+      font-size: 3rem;
+    }
+    .me-2 {
+      margin-right: 0.4rem;
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">Auto Attendance System - Admin</a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-            </div>
-        </div>
-    </nav>
-    
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-12">
-                <h2>Welcome, Admin</h2>
-                <hr>
-            </div>
-        </div>
-        
-        <div class="row mt-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Mark Attendance</h5>
-                        <p class="card-text">Use camera to detect faces and mark attendance</p>
-                        <a href="{{ url_for('camera_page') }}" class="btn btn-primary">Open Camera</a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">View Attendance</h5>
-                        <p class="card-text">View and manage attendance records</p>
-                        <button class="btn btn-info" onclick="viewAttendance()">View Records</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Add Subject</h5>
-                        <p class="card-text">Add new subjects to the system</p>
-                        <button class="btn btn-success" onclick="showAddSubject()">Add Subject</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Attendance Table -->
-        <div class="row mt-4" id="attendanceTable" style="display: none;">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Attendance Records</h4>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <input type="date" class="form-control" id="filterDate" placeholder="Filter by date">
-                            </div>
-                            <div class="col-md-4">
-                                <select class="form-control" id="filterSubject">
-                                    <option value="">All Subjects</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <button class="btn btn-primary" onclick="loadAttendance()">Filter</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-striped" id="attendanceDataTable">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Student ID</th>
-                                    <th>Student Name</th>
-                                    <th>Subject</th>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Hour</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="attendanceBody">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Add Subject Modal -->
-        <div class="modal fade" id="addSubjectModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Add New Subject</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="addSubjectForm">
-                            <div class="mb-3">
-                                <label for="subjectName" class="form-label">Subject Name</label>
-                                <input type="text" class="form-control" id="subjectName" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="subjectCode" class="form-label">Subject Code</label>
-                                <input type="text" class="form-control" id="subjectCode" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" onclick="addSubject()">Add Subject</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- In admin_dashboard.html, add these new cards -->
-<div class="col-md-4">
-    <div class="card">
-        <div class="card-body text-center">
-            <i class="fas fa-upload fa-3x mb-3 text-primary"></i>
-            <h5 class="card-title">Upload Photos</h5>
-            <p class="card-text">Mark attendance by uploading photos</p>
-            <a href="{{ url_for('mark_attendance_upload') }}" class="btn btn-primary">
-                <i class="fas fa-camera me-2"></i>Upload Photos
-            </a>
-        </div>
+
+<!-- navbar (solid) -->
+<nav class="navbar navbar-dark bg-dark">
+  <div class="container">
+    <span class="navbar-brand"><i class="fas fa-clipboard-list me-2"></i>Auto Attendance · bento admin</span>
+    <a class="nav-link text-white" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+  </div>
+</nav>
+
+<!-- bento container -->
+<div class="bento-container">
+
+  <!-- welcome -->
+  <h2 class="welcome-title"><i class="fas fa-crown me-2" style="color:#2a4f6e;"></i>Welcome back, Admin</h2>
+  <hr class="hr-bento">
+
+  <!-- BENTO GRID (3 cards) no gradients, solid colors -->
+  <div class="bento-grid">
+
+    <!-- card 1: Mark attendance (camera) -->
+    <div class="bento-card">
+      <i class="fas fa-camera bento-icon"></i>
+      <h5 class="card-title">Mark Attendance</h5>
+      <p>Use camera to detect faces and mark attendance</p>
+      <a href="{{ url_for('camera_page') }}" class="btn-bento">
+        <i class="fas fa-camera me-2"></i>Open Camera
+      </a>
     </div>
+
+    <!-- card 2: View attendance (opens table) -->
+    <div class="bento-card">
+      <i class="fas fa-table bento-icon" style="color:#3b6e8f;"></i>
+      <h5 class="card-title">View Attendance</h5>
+      <p>View and manage attendance records</p>
+      <button class="btn-bento btn-bento-info" onclick="viewAttendance()">
+        <i class="fas fa-eye me-2"></i>View Records
+      </button>
+    </div>
+
+    <!-- card 3: Upload Photos -->
+    <div class="bento-card">
+      <i class="fas fa-upload bento-icon" style="color:#2d7a6e;"></i>
+      <h5 class="card-title">Upload Photos</h5>
+      <p>Mark attendance by uploading photos</p>
+      <a href="{{ url_for('mark_attendance_upload') }}" class="btn-bento btn-bento-success">
+        <i class="fas fa-camera me-2"></i>Upload Photos
+      </a>
+    </div>
+  </div>
+
+
+  <!-- ATTENDANCE TABLE PANEL (hidden by default) - bento style -->
+  <div class="attendance-panel hidden-panel" id="attendanceTable">
+    <div class="panel-header">
+      <h4><i class="fas fa-clipboard me-2" style="color:#1e3b4c;"></i>Attendance Records</h4>
+      <a href="/download-attendance" class="btn-excel">
+        <i class="fas fa-file-excel me-2"></i>Download Excel
+      </a>
+    </div>
+
+    <!-- filters -->
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="filterDate"><i class="far fa-calendar-alt me-1"></i>Date</label>
+        <input type="date" class="filter-control" id="filterDate">
+      </div>
+      <div class="filter-group">
+        <label for="filterSubject"><i class="far fa-bookmark me-1"></i>Subject</label>
+        <select class="filter-control" id="filterSubject">
+          <option value="">All Subjects</option>
+        </select>
+      </div>
+      <div class="filter-group" style="flex-grow: 0;">
+        <button class="btn-filter" onclick="loadAttendance()"><i class="fas fa-filter me-2"></i>Filter</button>
+      </div>
+    </div>
+
+    <!-- datatable wrapper -->
+    <div class="table-responsive">
+      <table class="table table-striped" id="attendanceDataTable" style="width:100%">
+        <thead>
+          <tr>
+            <th>ID</th><th>Student ID</th><th>Student Name</th><th>Subject</th><th>Date</th><th>Time</th><th>Hour</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="attendanceBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL (solid) -->
+  <div class="modal fade" id="editAttendanceModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-pen me-2"></i>Edit attendance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editAttendanceId">
+          <select class="form-control form-select-custom" id="editStatus">
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="late">Late</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" style="border-radius:40px; padding:0.5rem 1.8rem;" data-bs-dismiss="modal">Close</button>
+          <button class="btn btn-primary" style="border-radius:40px; padding:0.5rem 2rem; background:#2a4f6e; border-color:#1f405b;" onclick="updateAttendance()">Update</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="col-md-4">
-    <div class="card">
-        <div class="card-body text-center">
-            <i class="fas fa-layer-group fa-3x mb-3 text-success"></i>
-            <h5 class="card-title">Bulk Upload</h5>
-            <p class="card-text">Process multiple photos at once</p>
-           <a href="{{ url_for('mark_attendance_upload') }}" class="btn btn-success">
-                <i class="fas fa-files me-2"></i>Bulk Upload
-            </a>
-        </div>
-    </div>
-</div>
-        <!-- Edit Attendance Modal -->
-        <div class="modal fade" id="editAttendanceModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Attendance</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="editAttendanceForm">
-                            <input type="hidden" id="editAttendanceId">
-                            <div class="mb-3">
-                                <label for="editStatus" class="form-label">Status</label>
-                                <select class="form-control" id="editStatus">
-                                    <option value="present">Present</option>
-                                    <option value="absent">Absent</option>
-                                    <option value="late">Late</option>
-                                </select>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" onclick="updateAttendance()">Update</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
-    
-    <script>
-        function viewAttendance() {
-            document.getElementById('attendanceTable').style.display = 'block';
-            loadSubjects();
-            loadAttendance();
-        }
-        
-        function loadSubjects() {
-            fetch('/api/subjects')
-                .then(response => response.json())
-                .then(data => {
-                    const select = document.getElementById('filterSubject');
-                    data.forEach(subject => {
-                        const option = document.createElement('option');
-                        option.value = subject.name;
-                        option.textContent = subject.name;
-                        select.appendChild(option);
-                    });
-                });
-        }
-        
-        function loadAttendance() {
-            const date = document.getElementById('filterDate').value;
-            const subject = document.getElementById('filterSubject').value;
-            
-            let url = '/api/attendance/view';
-            const params = [];
-            if (date) params.push(`date=${date}`);
-            if (subject) params.push(`subject=${subject}`);
-            if (params.length) url += '?' + params.join('&');
-            
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById('attendanceBody');
-                    tbody.innerHTML = '';
-                    
-                    data.forEach(record => {
-                        const row = tbody.insertRow();
-                        row.innerHTML = `
-                            <td>${record.id}</td>
-                            <td>${record.student_id}</td>
-                            <td>${record.student_name}</td>
-                            <td>${record.subject}</td>
-                            <td>${record.date}</td>
-                            <td>${record.time}</td>
-                            <td>${record.hour}</td>
-                            <td>${record.status}</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning" onclick="editAttendance(${record.id}, '${record.status}')">Edit</button>
-                            </td>
-                        `;
-                    });
-                    
-                    if (window.attendanceTable) {
-                        window.attendanceTable.destroy();
-                    }
-                    
-                    window.attendanceTable = $('#attendanceDataTable').DataTable();
-                });
-        }
-        
-        function showAddSubject() {
-            $('#addSubjectModal').modal('show');
-        }
-        
-        function addSubject() {
-            const name = document.getElementById('subjectName').value;
-            const code = document.getElementById('subjectCode').value;
-            
-            fetch('/api/subjects/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, code })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Subject added successfully');
-                    $('#addSubjectModal').modal('hide');
-                    document.getElementById('addSubjectForm').reset();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            });
-        }
-        
-        function editAttendance(id, currentStatus) {
-            document.getElementById('editAttendanceId').value = id;
-            document.getElementById('editStatus').value = currentStatus;
-            $('#editAttendanceModal').modal('show');
-        }
-        
-        function updateAttendance() {
-            const id = document.getElementById('editAttendanceId').value;
-            const status = document.getElementById('editStatus').value;
-            
-            fetch('/api/attendance/edit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id, status })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Attendance updated successfully');
-                    $('#editAttendanceModal').modal('hide');
-                    loadAttendance();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            });
-        }
-    </script>
+
+<!-- scripts -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+
+function viewAttendance(){
+    document.getElementById('attendanceTable').classList.remove('hidden-panel');
+    loadSubjects();
+    loadAttendance();
+}
+
+
+// ---------------- LOAD SUBJECTS ----------------
+
+function loadSubjects(){
+
+fetch('/api/subjects')
+.then(res=>res.json())
+.then(data=>{
+
+const select=document.getElementById('filterSubject');
+
+select.innerHTML='<option value="">All Subjects</option>';
+
+data.forEach(subject=>{
+
+const option=document.createElement('option');
+
+option.value=subject.name;
+option.textContent=subject.name;
+
+select.appendChild(option);
+
+});
+
+})
+.catch(err=>console.error("Subject load error:",err));
+
+}
+
+
+// ---------------- LOAD ATTENDANCE ----------------//
+
+function loadAttendance(){
+
+const date=document.getElementById('filterDate').value;
+const subject=document.getElementById('filterSubject').value;
+
+let url='/api/attendance/view';
+
+const params=[];
+
+if(date) params.push("date="+date);
+if(subject) params.push("subject="+subject);
+
+if(params.length>0){
+url+='?'+params.join('&');
+}
+
+fetch(url)
+
+.then(res=>res.json())
+
+.then(data=>populateTable(data))
+
+.catch(err=>console.error("Attendance load error:",err));
+
+}
+
+
+// ---------------- POPULATE TABLE ----------------
+
+function populateTable(records){
+
+const tbody=document.getElementById('attendanceBody');
+
+tbody.innerHTML='';
+
+records.forEach(record=>{
+
+const row=tbody.insertRow();
+
+row.innerHTML=`
+
+<td>${record.id}</td>
+<td>${record.student_id}</td>
+<td>${record.student_name}</td>
+<td>${record.subject}</td>
+<td>${record.date}</td>
+<td>${record.time}</td>
+<td>${record.hour}</td>
+<td>${record.status}</td>
+
+<td>
+
+<button class="btn-edit"
+onclick="editAttendance(${record.id},'${record.status}')">
+Edit
+</button>
+
+<button class="btn-delete"
+onclick="deleteAttendance(${record.id})">
+Del
+</button>
+
+</td>
+
+`;
+
+});
+
+
+// destroy datatable safely if already exists
+if ($.fn.DataTable.isDataTable('#attendanceDataTable')) {
+    $('#attendanceDataTable').DataTable().clear().destroy();
+}
+
+// initialize datatable
+$('#attendanceDataTable').DataTable({
+pageLength:5
+});
+
+}
+
+
+// ---------------- EDIT ATTENDANCE ----------------
+
+function editAttendance(id,status){
+
+document.getElementById('editAttendanceId').value=id;
+document.getElementById('editStatus').value=status;
+
+$('#editAttendanceModal').modal('show');
+
+}
+
+
+// ---------------- UPDATE ATTENDANCE ----------------
+
+function updateAttendance(){
+
+const id=document.getElementById('editAttendanceId').value;
+const status=document.getElementById('editStatus').value;
+
+fetch('/api/attendance/edit',{
+
+method:'POST',
+
+headers:{'Content-Type':'application/json'},
+
+body:JSON.stringify({id,status})
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.success){
+
+alert("Attendance updated");
+
+$('#editAttendanceModal').modal('hide');
+
+loadAttendance();
+
+}
+
+})
+
+.catch(err=>console.error("Update error:",err));
+
+}
+
+
+// ---------------- DELETE ATTENDANCE ----------------
+
+function deleteAttendance(id){
+
+if(confirm("Delete this record?")){
+
+fetch('/api/attendance/delete',{
+
+method:'POST',
+
+headers:{'Content-Type':'application/json'},
+
+body:JSON.stringify({id})
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.success){
+
+alert("Record deleted");
+
+loadAttendance();
+
+}
+
+})
+
+.catch(err=>console.error("Delete error:",err));
+
+}
+
+}
+
+</script>
+
+<!-- ensure hidden panel is hidden by default -->
+<style>
+  .hidden-panel { display: none; }
+</style>
+
 </body>
 </html>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -7,6 +7,7 @@ import os
 import json
 import numpy as np
 import uuid
+import pandas as pd
 
 from database import db, Admin, Student, Attendance, Subject
 from face_recognition import FaceRecognition
@@ -103,7 +104,7 @@ def student_login():
     return render_template("student_login.html")
 
 
-# ---------------- REGISTER ----------------
+# ---------------- REGISTER STUDENT ----------------
 
 @app.route('/register', methods=['GET','POST'])
 def register():
@@ -117,10 +118,7 @@ def register():
 
         photo = request.files['photo']
 
-        filename = secure_filename(
-            f"{student_id}_{uuid.uuid4().hex}.jpg"
-        )
-
+        filename = secure_filename(f"{student_id}_{uuid.uuid4().hex}.jpg")
         path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
         photo.save(path)
@@ -154,7 +152,6 @@ def register():
 
 
 # ---------------- ADMIN DASHBOARD ----------------
-
 @app.route('/admin-dashboard')
 @login_required
 def admin_dashboard():
@@ -162,8 +159,23 @@ def admin_dashboard():
     if session.get("user_type") != "admin":
         return redirect(url_for("index"))
 
-    return render_template("admin_dashboard.html")
+    subject_filter = request.args.get("subject")
 
+    query = Attendance.query
+
+    if subject_filter:
+        query = query.filter_by(subject=subject_filter)
+
+    records = query.order_by(Attendance.date.desc()).all()
+
+    subjects = Subject.query.all()
+
+    return render_template(
+        "admin_dashboard.html",
+        records=records,
+        subjects=subjects,
+        selected_subject=subject_filter
+    )
 
 # ---------------- STUDENT DASHBOARD ----------------
 
@@ -199,8 +211,7 @@ def camera_page():
     return render_template("camera.html", subjects=subjects)
 
 
-# ---------------- MARK ATTENDANCE PAGE ----------------
-
+# ---------------- MARK ATTENDANCE UPLOAD ----------------
 @app.route('/mark-attendance-upload')
 @login_required
 def mark_attendance_upload():
@@ -210,33 +221,10 @@ def mark_attendance_upload():
 
     subjects = Subject.query.all()
 
-    return render_template(
-        "mark_attendance_upload.html",
-        subjects=subjects
-    )
-
-
-# ---------------- FACE DETECTION ----------------
-
-@app.route('/api/detect-face', methods=['POST'])
-@login_required
-def detect_face():
-
-    data = request.json
-    image = data["image"]
-
-    encoding = face_recognizer.get_face_encoding(image)
-
-    if encoding is None:
-        return jsonify({"faces":0})
-
-    return jsonify({"faces":1})
-
-
+    return render_template("mark_attendance_upload.html", subjects=subjects)
 # ---------------- FACE RECOGNITION ----------------
 
 @app.route('/api/recognize-face', methods=['POST'])
-@login_required
 def recognize_face():
 
     if session.get("user_type") != "admin":
@@ -299,15 +287,30 @@ def recognize_face():
         db.session.commit()
 
         return jsonify({
-            "message":f"Attendance marked for {best_match.name}"
+            "message":f"Attendance marked for {best_match.name}",
+            "student":best_match.name
         })
 
     return jsonify({"error":"Student not recognized"})
-#==========================================
-# ---------------- VIEW ATTENDANCE API ----------------
 
+# ---------------- GET SUBJECTS ----------------
+
+@app.route('/api/subjects')
+def get_subjects():
+
+    if session.get("user_type") != "admin":
+        return jsonify([])
+
+    subjects = Subject.query.all()
+
+    return jsonify([
+        {"id": s.id, "name": s.name, "code": s.code}
+        for s in subjects
+    ])
+
+
+# ---------------- VIEW ATTENDANCE ----------------
 @app.route('/api/attendance/view')
-@login_required
 def view_attendance():
 
     records = Attendance.query.all()
@@ -325,6 +328,74 @@ def view_attendance():
         }
         for r in records
     ])
+# ---------------- EDIT ATTENDANCE ----------------
+
+@app.route('/api/attendance/edit', methods=['POST'])
+def edit_attendance():
+
+    data = request.json
+
+    record = Attendance.query.get(data['id'])
+
+    if not record:
+        return jsonify({"success": False})
+
+    record.status = data['status']
+
+    db.session.commit()
+
+    return jsonify({"success": True})
+
+
+# ---------------- DELETE ATTENDANCE ----------------
+
+@app.route('/api/attendance/delete', methods=['POST'])
+def delete_attendance():
+
+    data = request.json
+
+    record = Attendance.query.get(data['id'])
+
+    if not record:
+        return jsonify({"success": False})
+
+    db.session.delete(record)
+    db.session.commit()
+
+    return jsonify({"success": True})
+
+
+# ---------------- DOWNLOAD ATTENDANCE ----------------
+
+@app.route('/download-attendance')
+@login_required
+def download_attendance():
+
+    records = Attendance.query.all()
+
+    data = []
+
+    for r in records:
+
+        data.append({
+            "Student ID": r.student_id,
+            "Student Name": r.student_name,
+            "Subject": r.subject,
+            "Date": str(r.date),
+            "Time": str(r.time),
+            "Hour": r.hour,
+            "Status": r.status
+        })
+
+    df = pd.DataFrame(data)
+
+    file_path = "attendance.xlsx"
+
+    df.to_excel(file_path, index=False)
+
+    return send_file(file_path, as_attachment=True)
+
+
 # ---------------- LOGOUT ----------------
 
 @app.route('/logout')
@@ -358,15 +429,17 @@ def init_db():
         if not Subject.query.first():
 
             subjects = [
-                ("Mathematics","MATH101"),
-                ("Physics","PHY101"),
-                ("Computer Science","CS101")
+                ("Software Testing","ST101"),
+                ("Entrepreneurship","ENT101"),
+                ("Indian Constitution","IC101"),
+                ("Open Elective","OE101"),
+                ("CNE Lab","CNE101"),
+                ("SDP Lab","SDP101"),
+                ("Software Testing Lab","STL101")
             ]
 
             for name,code in subjects:
-                db.session.add(
-                    Subject(name=name, code=code)
-                )
+                db.session.add(Subject(name=name, code=code))
 
         db.session.commit()
 

@@ -8,9 +8,10 @@ import json
 import numpy as np
 import uuid
 import pandas as pd
+import base64
+import face_recognition
 
 from database import db, Admin, Student, Attendance, Subject
-from face_recognition import FaceRecognition
 
 app = Flask(__name__)
 
@@ -30,8 +31,6 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "student_login"
-
-face_recognizer = FaceRecognition()
 
 # ---------------- USER LOADER ----------------
 
@@ -123,13 +122,15 @@ def register():
 
         photo.save(path)
 
-        encoding = face_recognizer.get_face_encoding_from_file(path)
+        image = face_recognition.load_image_file(path)
+        encodings = face_recognition.face_encodings(image)
 
-        if encoding is None:
-
+        if len(encodings) == 0:
             os.remove(path)
             flash("No face detected")
             return redirect(request.url)
+
+        encoding = encodings[0]
 
         student = Student(
             student_id=student_id,
@@ -152,6 +153,7 @@ def register():
 
 
 # ---------------- ADMIN DASHBOARD ----------------
+
 @app.route('/admin-dashboard')
 @login_required
 def admin_dashboard():
@@ -159,23 +161,15 @@ def admin_dashboard():
     if session.get("user_type") != "admin":
         return redirect(url_for("index"))
 
-    subject_filter = request.args.get("subject")
-
-    query = Attendance.query
-
-    if subject_filter:
-        query = query.filter_by(subject=subject_filter)
-
-    records = query.order_by(Attendance.date.desc()).all()
-
+    records = Attendance.query.order_by(Attendance.date.desc()).all()
     subjects = Subject.query.all()
 
     return render_template(
         "admin_dashboard.html",
         records=records,
-        subjects=subjects,
-        selected_subject=subject_filter
+        subjects=subjects
     )
+
 
 # ---------------- STUDENT DASHBOARD ----------------
 
@@ -211,18 +205,7 @@ def camera_page():
     return render_template("camera.html", subjects=subjects)
 
 
-# ---------------- MARK ATTENDANCE UPLOAD ----------------
-@app.route('/mark-attendance-upload')
-@login_required
-def mark_attendance_upload():
-
-    if session.get("user_type") != "admin":
-        return redirect(url_for("index"))
-
-    subjects = Subject.query.all()
-
-    return render_template("mark_attendance_upload.html", subjects=subjects)
-# ---------------- FACE RECOGNITION ----------------
+# ---------------- FACE RECOGNITION API ----------------
 
 @app.route('/api/recognize-face', methods=['POST'])
 def recognize_face():
@@ -232,14 +215,25 @@ def recognize_face():
 
     data = request.json
 
-    image = data["image"]
+    image_data = data["image"]
     subject = data["subject"]
     hour = data["class_hour"]
 
-    encoding = face_recognizer.get_face_encoding(image)
+    img_data = image_data.split(",")[1]
+    img_bytes = base64.b64decode(img_data)
 
-    if encoding is None:
+    temp_path = os.path.join(app.config['TEMP_FOLDER'], "temp.jpg")
+
+    with open(temp_path, "wb") as f:
+        f.write(img_bytes)
+
+    img = face_recognition.load_image_file(temp_path)
+    encodings = face_recognition.face_encodings(img)
+
+    if len(encodings) == 0:
         return jsonify({"error":"No face detected"})
+
+    encoding = encodings[0]
 
     students = Student.query.filter_by(registered=True).all()
 
@@ -250,10 +244,7 @@ def recognize_face():
 
         stored = np.array(json.loads(student.face_encoding))
 
-        distance = face_recognizer.compare_faces(
-            encoding,
-            stored
-        )
+        distance = face_recognition.face_distance([stored], encoding)[0]
 
         if distance < best_distance:
             best_distance = distance
@@ -292,77 +283,6 @@ def recognize_face():
         })
 
     return jsonify({"error":"Student not recognized"})
-
-# ---------------- GET SUBJECTS ----------------
-
-@app.route('/api/subjects')
-def get_subjects():
-
-    if session.get("user_type") != "admin":
-        return jsonify([])
-
-    subjects = Subject.query.all()
-
-    return jsonify([
-        {"id": s.id, "name": s.name, "code": s.code}
-        for s in subjects
-    ])
-
-
-# ---------------- VIEW ATTENDANCE ----------------
-@app.route('/api/attendance/view')
-def view_attendance():
-
-    records = Attendance.query.all()
-
-    return jsonify([
-        {
-            "id": r.id,
-            "student_id": r.student_id,
-            "student_name": r.student_name,
-            "subject": r.subject,
-            "date": str(r.date),
-            "time": str(r.time),
-            "hour": r.hour,
-            "status": r.status
-        }
-        for r in records
-    ])
-# ---------------- EDIT ATTENDANCE ----------------
-
-@app.route('/api/attendance/edit', methods=['POST'])
-def edit_attendance():
-
-    data = request.json
-
-    record = Attendance.query.get(data['id'])
-
-    if not record:
-        return jsonify({"success": False})
-
-    record.status = data['status']
-
-    db.session.commit()
-
-    return jsonify({"success": True})
-
-
-# ---------------- DELETE ATTENDANCE ----------------
-
-@app.route('/api/attendance/delete', methods=['POST'])
-def delete_attendance():
-
-    data = request.json
-
-    record = Attendance.query.get(data['id'])
-
-    if not record:
-        return jsonify({"success": False})
-
-    db.session.delete(record)
-    db.session.commit()
-
-    return jsonify({"success": True})
 
 
 # ---------------- DOWNLOAD ATTENDANCE ----------------
@@ -446,8 +366,9 @@ def init_db():
 
 # ---------------- MAIN ----------------
 
+
+    import os
+
 if __name__ == "__main__":
-
-    init_db()
-
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

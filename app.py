@@ -3,12 +3,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, date
-import os
-import json
-import numpy as np
-import uuid
-import pandas as pd
-import base64
+import os, json, numpy as np, uuid, pandas as pd, base64
 import face_recognition
 
 from database import db, Admin, Student, Attendance, Subject
@@ -16,10 +11,8 @@ from database import db, Admin, Student, Attendance, Subject
 app = Flask(__name__)
 
 # ---------------- CONFIG ----------------
-
 app.config['SECRET_KEY'] = 'secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///attendance.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads/faces'
 app.config['TEMP_FOLDER'] = 'static/uploads/temp'
 
@@ -33,111 +26,73 @@ login_manager.init_app(app)
 login_manager.login_view = "student_login"
 
 # ---------------- USER LOADER ----------------
-
 @login_manager.user_loader
 def load_user(user_id):
-
-    user_type = session.get("user_type")
-
-    if user_type == "admin":
+    if session.get("user_type") == "admin":
         return Admin.query.get(int(user_id))
-
-    if user_type == "student":
+    elif session.get("user_type") == "student":
         return Student.query.get(int(user_id))
-
     return None
 
-
 # ---------------- HOME ----------------
-
 @app.route('/')
 def index():
     return render_template("index.html")
 
-
 # ---------------- ADMIN LOGIN ----------------
-
 @app.route('/admin-login', methods=['GET','POST'])
 def admin_login():
-
     if request.method == "POST":
+        admin = Admin.query.filter_by(username=request.form['username']).first()
 
-        username = request.form['username']
-        password = request.form['password']
-
-        admin = Admin.query.filter_by(username=username).first()
-
-        if admin and check_password_hash(admin.password, password):
-
+        if admin and check_password_hash(admin.password, request.form['password']):
             session['user_type'] = "admin"
             login_user(admin)
-
             return redirect(url_for("admin_dashboard"))
 
         flash("Invalid admin credentials")
 
     return render_template("admin_login.html")
 
-
 # ---------------- STUDENT LOGIN ----------------
-
 @app.route('/student-login', methods=['GET','POST'])
 def student_login():
-
     if request.method == "POST":
+        student = Student.query.filter_by(student_id=request.form['student_id']).first()
 
-        student_id = request.form['student_id']
-        password = request.form['password']
-
-        student = Student.query.filter_by(student_id=student_id).first()
-
-        if student and check_password_hash(student.password, password):
-
+        if student and check_password_hash(student.password, request.form['password']):
             session['user_type'] = "student"
             login_user(student)
-
             return redirect(url_for("student_dashboard"))
 
         flash("Invalid student login")
 
     return render_template("student_login.html")
 
-
-# ---------------- REGISTER STUDENT ----------------
-
+# ---------------- REGISTER ----------------
 @app.route('/register', methods=['GET','POST'])
 def register():
-
     if request.method == "POST":
 
-        student_id = request.form['student_id']
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
-
-        photo = request.files['photo']
-
-        filename = secure_filename(f"{student_id}_{uuid.uuid4().hex}.jpg")
+        file = request.files['photo']
+        filename = secure_filename(f"{request.form['student_id']}_{uuid.uuid4().hex}.jpg")
         path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(path)
 
-        photo.save(path)
+        img = face_recognition.load_image_file(path)
+        enc = face_recognition.face_encodings(img)
 
-        image = face_recognition.load_image_file(path)
-        encodings = face_recognition.face_encodings(image)
-
-        if len(encodings) == 0:
+        if len(enc) == 0:
             os.remove(path)
             flash("No face detected")
             return redirect(request.url)
 
-        encoding = encodings[0]
-
         student = Student(
-            student_id=student_id,
-            name=name,
-            email=email,
-            password=generate_password_hash(password),
-            face_encoding=json.dumps(encoding.tolist()),
+            student_id=request.form['student_id'],
+            name=request.form['name'],
+            email=request.form['email'],
+            password=generate_password_hash(request.form['password']),
+            face_encoding=json.dumps(enc[0].tolist()),
             photo_path=filename,
             registered=True
         )
@@ -145,126 +100,88 @@ def register():
         db.session.add(student)
         db.session.commit()
 
-        flash("Registration successful")
-
+        flash("Registered successfully")
         return redirect(url_for("student_login"))
 
     return render_template("register.html")
 
-
-# ---------------- ADMIN DASHBOARD ----------------
-
+# ---------------- DASHBOARDS ----------------
 @app.route('/admin-dashboard')
 @login_required
 def admin_dashboard():
-
     if session.get("user_type") != "admin":
         return redirect(url_for("index"))
 
-    records = Attendance.query.order_by(Attendance.date.desc()).all()
+    records = Attendance.query.all()
     subjects = Subject.query.all()
 
-    return render_template(
-        "admin_dashboard.html",
-        records=records,
-        subjects=subjects
-    )
-
-
-# ---------------- STUDENT DASHBOARD ----------------
+    return render_template("admin_dashboard.html", records=records, subjects=subjects)
 
 @app.route('/student-dashboard')
 @login_required
 def student_dashboard():
+    attendance = Attendance.query.filter_by(student_id=current_user.student_id).all()
+    return render_template("student_dashboard.html", attendance=attendance)
 
-    if session.get("user_type") != "student":
-        return redirect(url_for("student_login"))
-
-    attendance = Attendance.query.filter_by(
-        student_id=current_user.student_id
-    ).all()
-
-    return render_template(
-        "student_dashboard.html",
-        student=current_user,
-        attendance=attendance
-    )
-
-
-# ---------------- CAMERA PAGE ----------------
-
+# ---------------- CAMERA ----------------
 @app.route('/camera')
 @login_required
 def camera_page():
-
-    if session.get("user_type") != "admin":
-        return redirect(url_for("index"))
-
     subjects = Subject.query.all()
-
     return render_template("camera.html", subjects=subjects)
 
-
-# ---------------- FACE RECOGNITION API ----------------
-
+# ---------------- FACE RECOGNITION ----------------
 @app.route('/api/recognize-face', methods=['POST'])
 def recognize_face():
 
-    if session.get("user_type") != "admin":
-        return jsonify({"error":"Unauthorized"})
-
     data = request.json
-
     image_data = data["image"]
     subject = data["subject"]
     hour = data["class_hour"]
 
-    img_data = image_data.split(",")[1]
-    img_bytes = base64.b64decode(img_data)
+    img_bytes = base64.b64decode(image_data.split(",")[1])
 
     temp_path = os.path.join(app.config['TEMP_FOLDER'], "temp.jpg")
-
     with open(temp_path, "wb") as f:
         f.write(img_bytes)
 
     img = face_recognition.load_image_file(temp_path)
-    encodings = face_recognition.face_encodings(img)
+    enc = face_recognition.face_encodings(img)
 
-    if len(encodings) == 0:
+    if len(enc) == 0:
         return jsonify({"error":"No face detected"})
 
-    encoding = encodings[0]
+    encoding = enc[0]
 
     students = Student.query.filter_by(registered=True).all()
 
     best_match = None
-    best_distance = 0.6
+    best_distance = 0.5
 
-    for student in students:
+    for s in students:
+        stored = np.array(json.loads(s.face_encoding))
+        dist = face_recognition.face_distance([stored], encoding)[0]
 
-        stored = np.array(json.loads(student.face_encoding))
+        if dist < best_distance:
+            best_distance = dist
+            best_match = s
 
-        distance = face_recognition.face_distance([stored], encoding)[0]
-
-        if distance < best_distance:
-            best_distance = distance
-            best_match = student
+    os.remove(temp_path)
 
     if best_match:
-
         today = date.today()
 
-        existing = Attendance.query.filter_by(
+        exists = Attendance.query.filter_by(
             student_id=best_match.student_id,
             subject=subject,
             hour=int(hour),
             date=today
         ).first()
 
-        if existing:
+        if exists:
             return jsonify({"message":"Already marked"})
 
-        attendance = Attendance(
+        record = Attendance(
             student_id=best_match.student_id,
             student_name=best_match.name,
             subject=subject,
@@ -274,101 +191,209 @@ def recognize_face():
             status="present"
         )
 
-        db.session.add(attendance)
+        db.session.add(record)
         db.session.commit()
 
-        return jsonify({
-            "message":f"Attendance marked for {best_match.name}",
-            "student":best_match.name
-        })
+        return jsonify({"message": f"{best_match.name} marked"})
 
-    return jsonify({"error":"Student not recognized"})
+    return jsonify({"error":"Not recognized"})
 
+# ---------------- SUBJECT API ----------------
+@app.route('/api/subjects')
+def subjects_api():
+    return jsonify([{"name": s.name} for s in Subject.query.all()])
 
-# ---------------- DOWNLOAD ATTENDANCE ----------------
+# ---------------- VIEW ATTENDANCE ----------------
+@app.route('/api/attendance/view')
+def view_attendance():
+    date_filter = request.args.get("date")
+    subject_filter = request.args.get("subject")
 
+    query = Attendance.query
+
+    if date_filter:
+        query = query.filter_by(date=date_filter)
+
+    if subject_filter:
+        query = query.filter_by(subject=subject_filter)
+
+    records = query.all()
+
+    return jsonify([
+        {
+            "id": r.id,
+            "student_id": r.student_id,
+            "student_name": r.student_name,
+            "subject": r.subject,
+            "date": str(r.date),
+            "time": str(r.time),
+            "hour": r.hour,
+            "status": r.status
+        } for r in records
+    ])
+
+# ---------------- EDIT ----------------
+@app.route('/api/attendance/edit', methods=['POST'])
+def edit_attendance():
+    data = request.json
+    record = Attendance.query.get(data['id'])
+
+    if record:
+        record.status = data['status']
+        db.session.commit()
+        return jsonify({"success": True})
+
+    return jsonify({"success": False})
+
+# ---------------- DELETE ----------------
+@app.route('/api/attendance/delete', methods=['POST'])
+def delete_attendance():
+    data = request.json
+    record = Attendance.query.get(data['id'])
+
+    if record:
+        db.session.delete(record)
+        db.session.commit()
+        return jsonify({"success": True})
+
+    return jsonify({"success": False})
+
+# ---------------- DOWNLOAD ----------------
 @app.route('/download-attendance')
 @login_required
 def download_attendance():
 
-    records = Attendance.query.all()
+    data = [{
+        "Student ID": r.student_id,
+        "Name": r.student_name,
+        "Subject": r.subject,
+        "Date": str(r.date),
+        "Time": str(r.time),
+        "Hour": r.hour,
+        "Status": r.status
+    } for r in Attendance.query.all()]
 
-    data = []
+    file = "attendance.xlsx"
+    pd.DataFrame(data).to_excel(file, index=False)
 
-    for r in records:
+    return send_file(file, as_attachment=True)
+# ---------------- UPLOAD PAGE ----------------
+@app.route('/upload-attendance')
+@login_required
+def mark_attendance_upload():
+    if session.get("user_type") != "admin":
+        return redirect(url_for("index"))
 
-        data.append({
-            "Student ID": r.student_id,
-            "Student Name": r.student_name,
-            "Subject": r.subject,
-            "Date": str(r.date),
-            "Time": str(r.time),
-            "Hour": r.hour,
-            "Status": r.status
-        })
+    subjects = Subject.query.all()
+    return render_template("upload_photo.html", subjects=subjects)
 
-    df = pd.DataFrame(data)
+# ---------------- UPLOAD PHOTOS PROCESS ----------------
+@app.route('/upload-photos', methods=['POST'])
+@login_required
+def upload_photos():
 
-    file_path = "attendance.xlsx"
+    files = request.files.getlist('photos')
 
-    df.to_excel(file_path, index=False)
+    results = []
+    success = 0
+    failed = 0
 
-    return send_file(file_path, as_attachment=True)
+    for file in files:
+        try:
+            filename = secure_filename(file.filename)
+            path = os.path.join(app.config['TEMP_FOLDER'], filename)
+            file.save(path)
 
+            img = face_recognition.load_image_file(path)
+            enc = face_recognition.face_encodings(img)
+
+            if len(enc) == 0:
+                results.append({"name": "No face", "status": "failed"})
+                failed += 1
+                continue
+
+            encoding = enc[0]
+
+            students = Student.query.filter_by(registered=True).all()
+
+            best_match = None
+            best_distance = 0.5
+
+            for s in students:
+                stored = np.array(json.loads(s.face_encoding))
+                dist = face_recognition.face_distance([stored], encoding)[0]
+
+                if dist < best_distance:
+                    best_distance = dist
+                    best_match = s
+
+            if best_match:
+                record = Attendance(
+                    student_id=best_match.student_id,
+                    student_name=best_match.name,
+                    subject="Uploaded",
+                    hour=0,
+                    date=date.today(),
+                    time=datetime.now().time(),
+                    status="present"
+                )
+                db.session.add(record)
+
+                results.append({
+                    "name": best_match.name,
+                    "status": "success"
+                })
+                success += 1
+            else:
+                results.append({"name": "Unknown", "status": "failed"})
+                failed += 1
+
+        except:
+            results.append({"name": "Error", "status": "failed"})
+            failed += 1
+
+    db.session.commit()
+
+    return jsonify({
+        "total": len(files),
+        "success": success,
+        "failed": failed,
+        "results": results
+    })
 
 # ---------------- LOGOUT ----------------
-
 @app.route('/logout')
 @login_required
 def logout():
-
     session.clear()
     logout_user()
-
     return redirect(url_for("index"))
 
-
-# ---------------- INIT DATABASE ----------------
-
+# ---------------- INIT DB ----------------
 def init_db():
-
     with app.app_context():
-
         db.create_all()
 
-        if not Admin.query.filter_by(username="admin").first():
-
-            admin = Admin(
+        if not Admin.query.first():
+            db.session.add(Admin(
                 username="admin",
                 password=generate_password_hash("admin123"),
                 email="admin@email.com"
-            )
-
-            db.session.add(admin)
+            ))
 
         if not Subject.query.first():
-
             subjects = [
                 ("Software Testing","ST101"),
                 ("Entrepreneurship","ENT101"),
                 ("Indian Constitution","IC101"),
-                ("Open Elective","OE101"),
-                ("CNE Lab","CNE101"),
-                ("SDP Lab","SDP101"),
-                ("Software Testing Lab","STL101")
+                ("Open Elective","OE101")
             ]
-
-            for name,code in subjects:
-                db.session.add(Subject(name=name, code=code))
+            for n,c in subjects:
+                db.session.add(Subject(name=n, code=c))
 
         db.session.commit()
 
-
 # ---------------- MAIN ----------------
-
-
-    import os
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    init_db()
+    app.run(debug=True)

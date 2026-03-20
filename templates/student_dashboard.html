@@ -20,13 +20,13 @@
     <div class="container mt-4">
         <div class="row">
             <div class="col-md-12">
-                <h2>Welcome, {{ student.name }}</h2>
-                <p>Student ID: {{ student.student_id }}</p>
+                <h2>Welcome, {{ current_user.name }}</h2>
+                <p>Student ID: {{ current_user.student_id }}</p>
                 <hr>
             </div>
         </div>
         
-        {% if not student.registered %}
+        {% if not current_user.registered %}
         <div class="row mt-4">
             <div class="col-md-12">
                 <div class="alert alert-warning">

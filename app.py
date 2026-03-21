@@ -194,7 +194,11 @@ def recognize_face():
         db.session.add(record)
         db.session.commit()
 
-        return jsonify({"message": f"{best_match.name} marked"})
+        return jsonify({
+    "student": best_match.name,
+    "status": "success"
+})
+        
 
     return jsonify({"error":"Not recognized"})
 
@@ -204,20 +208,33 @@ def subjects_api():
     return jsonify([{"name": s.name} for s in Subject.query.all()])
 
 # ---------------- VIEW ATTENDANCE ----------------
+from datetime import datetime
+
 @app.route('/api/attendance/view')
 def view_attendance():
+
     date_filter = request.args.get("date")
     subject_filter = request.args.get("subject")
 
+    print("DATE:", date_filter)       # DEBUG
+    print("SUBJECT:", subject_filter) # DEBUG
+
     query = Attendance.query
 
+    # ✅ DATE FILTER
     if date_filter:
-        query = query.filter_by(date=date_filter)
+        try:
+            date_obj = datetime.strptime(date_filter, "%Y-%m-%d").date()
+            query = query.filter(Attendance.date == date_obj)
+        except Exception as e:
+            print("Date error:", e)
 
-    if subject_filter:
-        query = query.filter_by(subject=subject_filter)
-
+    # ✅ SUBJECT FILTER (ONLY IF NOT EMPTY)
+    if subject_filter and subject_filter != "":
+       query = query.filter(Attendance.subject == subject_filter)
     records = query.all()
+
+    print("RESULT COUNT:", len(records))  # DEBUG
 
     return jsonify([
         {
@@ -231,7 +248,6 @@ def view_attendance():
             "status": r.status
         } for r in records
     ])
-
 # ---------------- EDIT ----------------
 @app.route('/api/attendance/edit', methods=['POST'])
 def edit_attendance():
@@ -294,6 +310,10 @@ def upload_photos():
 
     files = request.files.getlist('photos')
 
+    # ✅ GET FROM FRONTEND
+    subject = request.form.get("subject")
+    hour = request.form.get("hour")
+
     results = []
     success = 0
     failed = 0
@@ -328,15 +348,28 @@ def upload_photos():
                     best_match = s
 
             if best_match:
+
+                # ✅ PREVENT DUPLICATE
+                exists = Attendance.query.filter_by(
+                    student_id=best_match.student_id,
+                    subject=subject,
+                    hour=int(hour),
+                    date=date.today()
+                ).first()
+
+                if exists:
+                    continue
+
                 record = Attendance(
                     student_id=best_match.student_id,
                     student_name=best_match.name,
-                    subject="Uploaded",
-                    hour=0,
+                    subject=subject,        # ✅ FIXED
+                    hour=int(hour),        # ✅ FIXED
                     date=date.today(),
                     time=datetime.now().time(),
                     status="present"
                 )
+
                 db.session.add(record)
 
                 results.append({
@@ -345,7 +378,10 @@ def upload_photos():
                 })
                 success += 1
             else:
-                results.append({"name": "Unknown", "status": "failed"})
+                results.append({
+                    "name": "Unknown Student",
+                    "status": "failed"
+                })
                 failed += 1
 
         except:
@@ -360,7 +396,57 @@ def upload_photos():
         "failed": failed,
         "results": results
     })
+#---------student--------------------------
+    
+@app.route('/api/students')
+def students_api():
+    students = Student.query.all()
 
+    return jsonify([
+        {
+            "student_id": s.student_id,
+            "name": s.name
+        }
+        for s in students
+    ])
+    
+ #---------------- MANUAL MARK ----------------   a
+@app.route('/api/manual-mark', methods=['POST'])
+@login_required
+def manual_mark():
+
+    data = request.json
+
+    student = Student.query.filter_by(student_id=data['student_id']).first()
+
+    if not student:
+        return jsonify({"message": "Student not found"})
+
+    # 🔥 PREVENT DUPLICATE
+    exists = Attendance.query.filter_by(
+        student_id=student.student_id,
+        subject=data['subject'],
+        hour=int(data['hour']),
+        date=date.today()
+    ).first()
+
+    if exists:
+        return jsonify({"message": "Already marked"})
+
+    record = Attendance(
+        student_id=student.student_id,
+        student_name=student.name,
+        subject=data['subject'],
+        hour=int(data['hour']),
+        date=date.today(),
+        time=datetime.now().time(),
+        status="present"
+    )
+
+    db.session.add(record)
+    db.session.commit()
+
+    return jsonify({"message": f"{student.name} marked successfully"})
 # ---------------- LOGOUT ----------------
 @app.route('/logout')
 @login_required

@@ -478,72 +478,87 @@ select.appendChild(option);
 
 function loadAttendance(){
 
-const date=document.getElementById('filterDate').value;
-const subject=document.getElementById('filterSubject').value;
+    // ✅ GET VALUES FROM FILTER INPUTS
+    const date = document.getElementById('filterDate').value;
+    const subject = document.getElementById('filterSubject').value;
 
-let url='/api/attendance/view';
+    let url = '/api/attendance/view';
 
-const params=[];
+    let params = [];
 
-if(date) params.push("date="+date);
-if(subject) params.push("subject="+subject);
+    // ✅ ADD ONLY IF EXISTS
+    if(date){
+        params.push("date=" + date);
+    }
 
-if(params.length>0){
-url+='?'+params.join('&');
+    if(subject){
+       params.push("subject=" + encodeURIComponent(subject));
+    }
+
+    // ✅ BUILD URL
+    if(params.length > 0){
+        url += "?" + params.join("&");
+    }
+
+    console.log("Fetching:", url); // 🔍 DEBUG
+
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
+        populateTable(data);
+    })
+    .catch(err => {
+        console.error("Error:", err);
+    });
 }
-
-fetch(url)
-
-.then(res=>res.json())
-
-.then(data=>populateTable(data))
-
-.catch(err=>console.error("Attendance load error:",err));
-
-}
-
 
 // ---------------- POPULATE TABLE ----------------
 
 function populateTable(records){
 
-const tbody=document.getElementById('attendanceBody');
+    const table = $('#attendanceDataTable');
 
-tbody.innerHTML='';
+    // ✅ destroy old table FIRST
+    if ($.fn.DataTable.isDataTable(table)) {
+        table.DataTable().clear().destroy();
+    }
 
-records.forEach(record=>{
+    const tbody = document.getElementById('attendanceBody');
+    tbody.innerHTML = '';
 
-const row=tbody.insertRow();
+    // ✅ if no data
+    if(records.length === 0){
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center">No data available</td></tr>`;
+        return;
+    }
 
-row.innerHTML=`
+    // ✅ insert rows
+    records.forEach(record => {
 
-<td>${record.id}</td>
-<td>${record.student_id}</td>
-<td>${record.student_name}</td>
-<td>${record.subject}</td>
-<td>${record.date}</td>
-<td>${record.time}</td>
-<td>${record.hour}</td>
-<td>${record.status}</td>
+        const row = tbody.insertRow();
 
-<td>
+        row.innerHTML = `
+        <td>${record.id}</td>
+        <td>${record.student_id}</td>
+        <td>${record.student_name}</td>
+        <td>${record.subject}</td>
+        <td>${record.date}</td>
+        <td>${record.time}</td>
+        <td>${record.hour}</td>
+        <td>${record.status}</td>
+        <td>
+            <button class="btn-edit" onclick="editAttendance(${record.id},'${record.status}')">Edit</button>
+            <button class="btn-delete" onclick="deleteAttendance(${record.id})">Del</button>
+        </td>
+        `;
+    });
 
-<button class="btn-edit"
-onclick="editAttendance(${record.id},'${record.status}')">
-Edit
-</button>
-
-<button class="btn-delete"
-onclick="deleteAttendance(${record.id})">
-Del
-</button>
-
-</td>
-
-`;
-
-});
-
+    // ✅ reinitialize AFTER rows added
+    table.DataTable({
+        pageLength: 5,
+        destroy: true
+    });
+}
 
 // destroy datatable safely if already exists
 if ($.fn.DataTable.isDataTable('#attendanceDataTable')) {
@@ -555,7 +570,7 @@ $('#attendanceDataTable').DataTable({
 pageLength:5
 });
 
-}
+
 
 
 // ---------------- EDIT ATTENDANCE ----------------

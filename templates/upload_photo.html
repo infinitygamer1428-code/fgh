@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         body {
             background: #f4f6fa;
@@ -42,7 +42,41 @@
 </head>
 
 <body>
+<div class="modal fade" id="manualModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
 
+      <div class="modal-header">
+        <h5>Manual Attendance</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <label>Student</label>
+        <select id="manualStudent" class="form-control mb-2"></select>
+
+        <label>Subject</label>
+        <select id="manualSubject" class="form-control mb-2"></select>
+
+        <label>Hour</label>
+        <select id="manualHour" class="form-control">
+            <option value="1">Hour 1</option>
+            <option value="2">Hour 2</option>
+            <option value="3">Hour 3</option>
+            <option value="4">Hour 4</option>
+            <option value="5">Hour 5</option>
+        </select>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="manualMark()">Mark</button>
+      </div>
+
+    </div>
+  </div>
+</div>
 <!-- NAVBAR -->
 <nav class="navbar navbar-dark bg-dark">
     <div class="container">
@@ -107,6 +141,12 @@
                     <div class="mt-3">
                         <button class="btn btn-primary" onclick="processPhotos()">Process Photos</button>
                         <button class="btn btn-secondary" onclick="clearFiles()">Clear</button>
+                        <button class="btn btn-success"
+        data-bs-toggle="modal"
+        data-bs-target="#manualModal"
+        onclick="loadManualData()">
+    Manual Mark
+</button>
                     </div>
 <div id="previewContainer" class="mt-3"></div>
 <div class="mt-3">
@@ -164,47 +204,45 @@
 </div>
 
 <script>
+
 let files = [];
 
-// ---------------- FILE SELECT + PREVIEW ----------------
+// ---------------- SELECT FILES ----------------
 document.getElementById('fileInput').addEventListener('change', function(e){
-
     files = Array.from(e.target.files);
+
     document.getElementById('selectedCount').innerText = files.length;
 
-    const previewContainer = document.getElementById('previewContainer');
+    showPreview(files);
+});
 
-    if(!previewContainer){
-        const div = document.createElement('div');
-        div.id = "previewContainer";
-        div.className = "mt-3";
-        document.querySelector('.card-body').appendChild(div);
+// ---------------- SHOW IMAGE PREVIEW ----------------
+function showPreview(files){
+    let container = document.getElementById("previewContainer");
+
+    if(!container){
+        container = document.createElement("div");
+        container.id = "previewContainer";
+        container.className = "mt-3 d-flex flex-wrap gap-2";
+        document.querySelector('.card-body').appendChild(container);
     }
 
-    const container = document.getElementById('previewContainer');
     container.innerHTML = "";
 
     files.forEach(file => {
-        const reader = new FileReader();
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        img.style.width = "80px";
+        img.style.height = "80px";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "8px";
+        img.style.border = "2px solid #ddd";
 
-        reader.onload = function(event){
-            const img = document.createElement("img");
-            img.src = event.target.result;
-            img.style.width = "100px";
-            img.style.margin = "5px";
-            img.style.borderRadius = "8px";
-            img.style.border = "2px solid #ddd";
-
-            container.appendChild(img);
-        };
-
-        reader.readAsDataURL(file);
+        container.appendChild(img);
     });
+}
 
-});
-
-
-// ---------------- PROCESS PHOTOS WITH LOADING ----------------
+// ---------------- PROCESS PHOTOS ----------------
 function processPhotos(){
 
     if(files.length === 0){
@@ -212,24 +250,28 @@ function processPhotos(){
         return;
     }
 
-    const btn = document.querySelector('.btn-primary');
-    const progressBar = document.getElementById('progressBar');
+    const subject = document.getElementById('subjectSelect').value;
+    const hour = document.getElementById('hourSelect').value;
 
-    // 🔥 Start loading
+    const btn = document.querySelector('.btn-primary');
+
+    // create progress bar if not exists
+    let progressBar = document.getElementById("progressBar");
+
+    if(!progressBar){
+        const progressDiv = document.createElement("div");
+        progressDiv.className = "progress mt-3";
+
+        progressDiv.innerHTML = `
+            <div id="progressBar" class="progress-bar" style="width:0%">0%</div>
+        `;
+
+        document.querySelector('.card-body').appendChild(progressDiv);
+        progressBar = document.getElementById("progressBar");
+    }
+
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Processing...`;
-
-    let progress = 0;
-
-    // Fake progress animation (smooth UI)
-    const interval = setInterval(() => {
-        progress += 10;
-        if(progress > 90) progress = 90;
-
-        progressBar.style.width = progress + "%";
-        progressBar.innerText = progress + "%";
-
-    }, 200);
 
     const formData = new FormData();
 
@@ -237,23 +279,48 @@ function processPhotos(){
         formData.append("photos", file);
     });
 
+    // ✅ IMPORTANT: send subject + hour
+    formData.append("subject", subject);
+    formData.append("hour", hour);
+
     fetch('/upload-photos', {
         method: 'POST',
         body: formData
     })
-    .then(res => res.json())
-    .then(data => {
+    .then(async res => {
+        // progress animation during wait
+        let progress = 0;
+        const interval = setInterval(()=>{
+            progress += 10;
+            if(progress > 90) progress = 90;
 
-        // Complete progress
+            progressBar.style.width = progress + "%";
+            progressBar.innerText = progress + "%";
+        },200);
+
+        const data = await res.json();
+
         clearInterval(interval);
+
+        // complete progress
         progressBar.style.width = "100%";
         progressBar.innerText = "100%";
+
+        return data;
+    })
+    .then(data => {
 
         document.getElementById('processedCount').innerText = data.total;
         document.getElementById('successCount').innerText = data.success;
         document.getElementById('failedCount').innerText = data.failed;
 
-        document.getElementById('recentText').innerText = data.message;
+        // ---------------- SHOW RESULTS ----------------
+        if(data.results.length > 0){
+            const names = data.results.map(r => `${r.name} (${r.status})`).join(", ");
+            document.getElementById('recentText').innerText = names;
+        } else {
+            document.getElementById('recentText').innerText = "No results";
+        }
 
     })
     .catch(err => {
@@ -261,23 +328,15 @@ function processPhotos(){
         alert("Error processing photos");
     })
     .finally(() => {
-
         btn.disabled = false;
         btn.innerHTML = "Process Photos";
-
-        // reset after 2 sec
-        setTimeout(() => {
-            progressBar.style.width = "0%";
-            progressBar.innerText = "0%";
-        }, 2000);
-
     });
 }
 
 // ---------------- CLEAR FILES ----------------
 function clearFiles(){
-
     files = [];
+
     document.getElementById('fileInput').value = "";
 
     document.getElementById('selectedCount').innerText = 0;
@@ -287,10 +346,79 @@ function clearFiles(){
 
     document.getElementById('recentText').innerText = "No attendance yet";
 
-    const container = document.getElementById('previewContainer');
-    if(container){
-        container.innerHTML = "";
+    const preview = document.getElementById("previewContainer");
+    if(preview) preview.innerHTML = "";
+
+    const progressBar = document.getElementById("progressBar");
+    if(progressBar){
+        progressBar.style.width = "0%";
+        progressBar.innerText = "0%";
     }
+}
+function loadManualData(){
+
+    // load students
+    fetch('/api/students')
+    .then(res => res.json())
+    .then(data => {
+        const studentSelect = document.getElementById('manualStudent');
+        studentSelect.innerHTML = '';
+
+        data.forEach(s => {
+            studentSelect.innerHTML += `
+                <option value="${s.student_id}">
+                    ${s.name} (${s.student_id})
+                </option>`;
+        });
+    });
+
+    // load subjects
+    fetch('/api/subjects')
+    .then(res => res.json())
+    .then(data => {
+        const subjectSelect = document.getElementById('manualSubject');
+        subjectSelect.innerHTML = '';
+
+        data.forEach(s => {
+            subjectSelect.innerHTML += `
+                <option value="${s.name}">
+                    ${s.name}
+                </option>`;
+        });
+    });
+
+}
+function manualMark(){
+
+    const student_id = document.getElementById('manualStudent').value;
+    const subject = document.getElementById('manualSubject').value;
+    const hour = document.getElementById('manualHour').value;
+
+    if(!student_id || !subject || !hour){
+        alert("Fill all fields");
+        return;
+    }
+
+    fetch('/api/manual-mark',{
+        method:'POST',
+        headers:{
+            'Content-Type':'application/json'
+        },
+        body: JSON.stringify({
+            student_id: student_id,
+            subject: subject,
+            hour: hour
+        })
+    })
+    .then(res => res.json())
+    .then(data=>{
+        alert(data.message);
+        location.reload();
+    })
+    .catch(err=>{
+        console.error(err);
+        alert("Manual marking failed");
+    });
 }
 </script>
 </body>

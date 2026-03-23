@@ -120,9 +120,25 @@ def admin_dashboard():
 @app.route('/student-dashboard')
 @login_required
 def student_dashboard():
-    attendance = Attendance.query.filter_by(student_id=current_user.student_id).all()
-    return render_template("student_dashboard.html", attendance=attendance)
 
+    records = Attendance.query.filter_by(
+        student_id=current_user.student_id
+    ).all()
+
+    # ✅ STRICT JSON SAFE DATA (ONLY DICT)
+    attendance_json = []
+
+    for r in records:
+        attendance_json.append({
+            "subject": str(r.subject),
+            "status": str(r.status)
+        })
+
+    return render_template(
+        "student_dashboard.html",
+        attendance=records,          # for table
+        attendance_json=attendance_json   # for graph
+    )
 # ---------------- CAMERA ----------------
 @app.route('/camera')
 @login_required
